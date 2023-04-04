@@ -55,11 +55,26 @@ export class NodeView extends Emitter<EventsTypes> {
 
     bindSocket(el: HTMLElement, type: string, io: IO) {
         this.clearSockets();
-        this.sockets.set(io, new SocketView(el, type, io, this.node, this));
+        this.rebind(this.sockets, io, el, () => new SocketView(el, type, io, this.node, this))
     }
 
     bindControl(el: HTMLElement, control: Control) {
-        this.controls.set(control, new ControlView(el, control, this));
+        this.rebind(this.controls, control, el, () => new ControlView(el, control, this))
+    }
+
+    rebind<K, V extends { el: HTMLElement; destroy?: () => void }>(
+        viewMap: Map<K, V>,
+        key: K,
+        el: HTMLElement,
+        viewCtor: () => V,
+    ) {
+        const view = viewMap.get(key);
+        let newView = !view;
+        if (view && view.el !== el) {
+            view.destroy?.();
+            newView = true;
+        }
+        if (newView) viewMap.set(key, viewCtor());
     }
 
     hasSocket(io: IO) {
